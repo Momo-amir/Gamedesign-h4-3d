@@ -197,7 +197,8 @@ MonoBehaviour:
   detectionRadius: 40
   avoidanceStrength: 4
   wanderInterval: 3
-  obstacleDetectDist: 2
+  obstacleDetectDist: 100
+  obstacleJitterAngle: 30
 --- !u!54 &5561787313847899437
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -206,7 +207,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1586501521591355735}
   serializedVersion: 5
-  m_Mass: 20000
+  m_Mass: 2000
   m_LinearDamping: 0
   m_AngularDamping: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}

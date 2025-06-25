@@ -449,7 +449,8 @@ GameObject:
   - component: {fileID: 2359104}
   - component: {fileID: 3313442307395238052}
   - component: {fileID: 8132704845476202704}
-  - component: {fileID: 189544167488989841}
+  - component: {fileID: -5493469967151718919}
+  - component: {fileID: 3391549394890635733}
   m_Layer: 0
   m_Name: Veh_Ute_Red_Z
   m_TagString: Untagged
@@ -579,7 +580,21 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 112
   m_CollisionDetection: 0
---- !u!114 &189544167488989841
+--- !u!114 &-5493469967151718919
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 178130}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4b3cf7c1096b4fe89f908149931a4f1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  centerOfMassYOffset: 0
+  uprightTorque: 50
+--- !u!114 &3391549394890635733
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -592,11 +607,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   moveAccel: 40
-  turnSpeed: 100
-  detectionRadius: 10
-  avoidanceStrength: 2
+  turnSpeed: 120
+  detectionRadius: 20
+  avoidanceStrength: 4
   wanderInterval: 3
-  obstacleDetectDist: 5
+  obstacleDetectDist: 100
+  obstacleJitterAngle: 30
 --- !u!1 &2801325797856607763
 GameObject:
   m_ObjectHideFlags: 0

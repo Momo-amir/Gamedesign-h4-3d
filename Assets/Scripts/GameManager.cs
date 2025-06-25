@@ -111,6 +111,17 @@ public class GameManager : MonoBehaviour
         ai.moveAccel         = baseSpeed        + speedIncrement     * hitCount;
         ai.avoidanceStrength = baseAvoidance    + avoidanceIncrement * hitCount;
         ai.detectionRadius   = baseDetectRadius + detectIncrement    * hitCount;
+    
+        // Orient NPC to face away from the player, with random yaw jitter
+        var playerTf = GameObject.FindGameObjectWithTag("Player")?.transform;
+        if (playerTf != null)
+        {
+            Vector3 awayDir = (go.transform.position - playerTf.position).normalized;
+            // random yaw offset to vary initial direction
+            float yawJ = Random.Range(-30f, 30f);
+            awayDir = Quaternion.Euler(0f, yawJ, 0f) * awayDir;
+            go.transform.rotation = Quaternion.LookRotation(awayDir, Vector3.up);
+        }
     }
 
     void OnGameOver()

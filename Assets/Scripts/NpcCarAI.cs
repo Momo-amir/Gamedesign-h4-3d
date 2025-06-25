@@ -12,6 +12,8 @@ public class NPCCarAI : MonoBehaviour
     public float avoidanceStrength  = 2f;
     public float wanderInterval     = 3f;
     public float obstacleDetectDist = 3f;
+    // how much random angle to apply on wall reflection
+    public float obstacleJitterAngle = 30f;
     bool hasBeenHit = false;
 
 
@@ -31,8 +33,8 @@ public class NPCCarAI : MonoBehaviour
 
     void FixedUpdate()
     {
-        // 1) global transitions have priority
-        if (IsObstacleAhead())
+        // 1) obstacle override only in Roam/Idle
+        if (IsObstacleAhead() && currentState != State.Evade)
             SetState(State.AvoidObstacle);
         else if (player && Vector3.Distance(transform.position, player.position) < detectionRadius)
             SetState(State.Evade);
@@ -53,8 +55,25 @@ public class NPCCarAI : MonoBehaviour
     {
         if (newState == currentState) return;
         currentState = newState;
-        wanderTimer  = wanderInterval;       // reset wander in any state
-        wanderDir    = Random.onUnitSphere;  wanderDir.y = 0; wanderDir.Normalize();
+        PickWanderDirection();
+    }
+
+    // choose a random horizontal direction that isn't blocked immediately
+    void PickWanderDirection()
+    {
+        const int maxTries = 8;
+        Vector3 dir = Vector3.zero;
+        for (int i = 0; i < maxTries; i++)
+        {
+            dir = Random.onUnitSphere;
+            dir.y = 0f;
+            dir.Normalize();
+            // if this direction doesn't immediately hit a wall, use it
+            if (!Physics.Raycast(transform.position, dir, obstacleDetectDist))
+                break;
+        }
+        wanderDir = dir;
+        wanderTimer = wanderInterval;
     }
 
     bool IsObstacleAhead()
@@ -73,11 +92,22 @@ public class NPCCarAI : MonoBehaviour
 
     void UpdateEvade()
     {
-        Vector3 away = (transform.position - player.position).normalized;
+        // compute pure away direction from player
+        Vector3 awayDir = (transform.position - player.position).normalized;
+        
+        // if obstacle ahead, blend in a gentle reflection
+        if (Physics.Raycast(transform.position, transform.forward, out var hit, obstacleDetectDist)
+            && hit.transform != player)
+        {
+            Vector3 reflect = Vector3.Reflect(awayDir, hit.normal).normalized;
+            // blend 50% toward reflection to steer around
+            awayDir = Vector3.Slerp(awayDir, reflect, 0.5f).normalized;
+        }
+        
+        // always drive forward
         DriveForward();
-        TurnToward( (wanderDir + away*avoidanceStrength).normalized,
-                    turnSpeed );
-        TickWander();
+        // steer toward blended awayDir
+        TurnToward(awayDir, turnSpeed * avoidanceStrength);
     }
 
     void UpdateAvoidObstacle()
@@ -86,6 +116,8 @@ public class NPCCarAI : MonoBehaviour
         var hit = Physics.RaycastAll(transform.position,
                                      transform.forward, obstacleDetectDist)[0];
         Vector3 refl = Vector3.Reflect(wanderDir, hit.normal).normalized;
+        float jitterAv = Random.Range(-obstacleJitterAngle, obstacleJitterAngle);
+        refl = Quaternion.Euler(0f, jitterAv, 0f) * refl;
         DriveForward();
         TurnToward(refl, turnSpeed * 2f);
     }

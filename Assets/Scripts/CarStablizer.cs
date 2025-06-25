@@ -12,11 +12,8 @@ public class CarStabilizer : MonoBehaviour
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
-        // push down the center of mass
         rb.centerOfMass += Vector3.up * centerOfMassYOffset;
-        // lock X/Z rotation in inspector or via code
-        rb.constraints |= RigidbodyConstraints.FreezeRotationX
-                       | RigidbodyConstraints.FreezeRotationZ;
+        
     }
 
     void FixedUpdate()
