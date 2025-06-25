@@ -3,109 +3,132 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody))]
 public class NPCCarAI : MonoBehaviour
 {
-    public float moveAccel             = 25f;
-    public float turnSpeed             = 100f;
-    public float detectionRadius       = 10f;
-    public float avoidanceStrength     = 2f;
-    public float wanderInterval        = 3f;
-    public float obstacleDetectDist    = 30f;
+    enum State { Roam, Evade, AvoidObstacle, Idle }
+    
+    [Header("AI Settings")]
+    public float moveAccel          = 25f;
+    public float turnSpeed          = 100f;
+    public float detectionRadius    = 10f;
+    public float avoidanceStrength  = 2f;
+    public float wanderInterval     = 3f;
+    public float obstacleDetectDist = 3f;
+    bool hasBeenHit = false;
+
 
     Rigidbody rb;
     Transform player;
     Vector3 wanderDir;
     float   wanderTimer;
+    State   currentState;
 
     void Awake()
     {
         rb     = GetComponent<Rigidbody>();
-        player = GameObject.FindGameObjectWithTag("Player")?.transform;
+        player = GameObject.FindWithTag("Player")?.transform;
         rb.useGravity = true;
-
-        PickWanderDir();
+        SetState(State.Roam);
     }
 
     void FixedUpdate()
     {
-        // 0) obstacle avoidance
-        if (Physics.Raycast(transform.position, transform.forward,
-                            out var hit, obstacleDetectDist)
-            && hit.transform != player)
+        // 1) global transitions have priority
+        if (IsObstacleAhead())
+            SetState(State.AvoidObstacle);
+        else if (player && Vector3.Distance(transform.position, player.position) < detectionRadius)
+            SetState(State.Evade);
+        else if (currentState == State.Evade)
+            SetState(State.Roam);
+
+        // 2) execute current state logic
+        switch (currentState)
         {
-            wanderDir = Vector3.Reflect(wanderDir, hit.normal);
-            wanderDir.y = 0;
-            wanderDir.Normalize();
-            wanderTimer = wanderInterval;
-            RotateTowards(wanderDir, turnSpeed * 2f);
-            return;
+            case State.Roam:         UpdateRoam();         break;
+            case State.Evade:        UpdateEvade();        break;
+            case State.AvoidObstacle:UpdateAvoidObstacle();break;
+            case State.Idle:         UpdateIdle();         break;
         }
-
-        // 1) decide idle vs evade
-        Vector3 toP  = player ? player.position - transform.position : Vector3.zero;
-        float   dist = player ? toP.magnitude : float.MaxValue;
-        if (dist < detectionRadius)
-            Evade(toP);
-        else
-            Idle();
     }
 
-    void Evade(Vector3 toPlayer)
+    void SetState(State newState)
     {
-        // steer away + wander
-        Vector3 away = -toPlayer.normalized * avoidanceStrength * 2f;
-        Vector3 dir  = (wanderDir + away).normalized;
-
-        // drive
-        rb.AddForce(transform.forward * moveAccel, ForceMode.Acceleration);
-        RotateTowards(dir, turnSpeed * 2f);
-
-        TimerTick();
+        if (newState == currentState) return;
+        currentState = newState;
+        wanderTimer  = wanderInterval;       // reset wander in any state
+        wanderDir    = Random.onUnitSphere;  wanderDir.y = 0; wanderDir.Normalize();
     }
 
-    void Idle()
+    bool IsObstacleAhead()
     {
-        // stop lateral XZ vel, keep Y
-        var v = rb.linearVelocity; rb.linearVelocity = new Vector3(0, v.y, 0);
-        // spin in place
-        RotateTowards(transform.forward, turnSpeed * 0.2f);
+        return Physics.Raycast(transform.position, transform.forward,
+                               out var hit, obstacleDetectDist)
+               && hit.transform != player;
     }
 
-    void RotateTowards(Vector3 dir, float speed)
+    void UpdateRoam()
+    {
+        DriveForward();
+        TurnToward(wanderDir, turnSpeed * 0.5f);
+        TickWander();
+    }
+
+    void UpdateEvade()
+    {
+        Vector3 away = (transform.position - player.position).normalized;
+        DriveForward();
+        TurnToward( (wanderDir + away*avoidanceStrength).normalized,
+                    turnSpeed );
+        TickWander();
+    }
+
+    void UpdateAvoidObstacle()
+    {
+        // reflect off the wall normal
+        var hit = Physics.RaycastAll(transform.position,
+                                     transform.forward, obstacleDetectDist)[0];
+        Vector3 refl = Vector3.Reflect(wanderDir, hit.normal).normalized;
+        DriveForward();
+        TurnToward(refl, turnSpeed * 2f);
+    }
+
+    void UpdateIdle()
+    {
+        // optional: spin in place or stand still
+        rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
+        TurnToward(transform.forward, turnSpeed * 0.1f);
+    }
+
+    void DriveForward()
+    {
+        rb.AddForce(transform.forward * moveAccel,
+                    ForceMode.Acceleration);
+    }
+
+    void TurnToward(Vector3 dir, float speed)
     {
         if (dir.sqrMagnitude < 0.01f) return;
         var target = Quaternion.LookRotation(dir, Vector3.up);
         rb.MoveRotation(Quaternion.RotateTowards(
-                            rb.rotation, target, speed * Time.fixedDeltaTime));
+            rb.rotation, target, speed * Time.fixedDeltaTime));
     }
 
-    void TimerTick()
+    void TickWander()
     {
         wanderTimer -= Time.fixedDeltaTime;
-        if (wanderTimer <= 0f) PickWanderDir();
-    }
-
-    void PickWanderDir()
-    {
-        wanderDir = Random.insideUnitSphere;
-        wanderDir.y = 0;
-        wanderDir.Normalize();
-        wanderTimer = wanderInterval;
+        if (wanderTimer <= 0f)
+            SetState(player && Vector3.Distance(transform.position, player.position) < detectionRadius
+                     ? State.Evade
+                     : State.Roam);
     }
 
     void OnCollisionEnter(Collision col)
     {
-        if (col.transform == player)
-        {
-            GameManager.Instance.OnNPCHit(this);
-            return;
-        }
+        // only react to the player and only once
+         if (hasBeenHit) return;
 
-        if (col.transform != player)
+        if (col.gameObject.CompareTag("Player"))
         {
-            var n = col.contacts[0].normal;
-            wanderDir = Vector3.Reflect(wanderDir, n).normalized;
-            wanderTimer = wanderInterval;
+            hasBeenHit = true;
+            GameManager.Instance.OnNPCHit(this);
         }
     }
 }
-
-// Note: This script assumes the player has a tag "Player".
