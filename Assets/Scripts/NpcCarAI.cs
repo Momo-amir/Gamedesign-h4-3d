@@ -7,6 +7,7 @@ public class NPCCarAI : MonoBehaviour
     
     [Header("AI Settings")]
     public float moveAccel          = 25f;
+    public float wanderAccel        = 10f;    // acceleration when wandering
     public float turnSpeed          = 100f;
     public float detectionRadius    = 10f;
     public float avoidanceStrength  = 2f;
@@ -41,7 +42,6 @@ public class NPCCarAI : MonoBehaviour
         else if (currentState == State.Evade)
             SetState(State.Roam);
 
-        // 2) execute current state logic
         switch (currentState)
         {
             case State.Roam:         UpdateRoam();         break;
@@ -68,7 +68,9 @@ public class NPCCarAI : MonoBehaviour
             dir = Random.onUnitSphere;
             dir.y = 0f;
             dir.Normalize();
-            // if this direction doesn't immediately hit a wall, use it
+            // if this direction doesn't immediately hit a wall, use it - not really a "wander" if it does
+            // but we don't want to get stuck in a corner
+            
             if (!Physics.Raycast(transform.position, dir, obstacleDetectDist))
                 break;
         }
@@ -85,7 +87,8 @@ public class NPCCarAI : MonoBehaviour
 
     void UpdateRoam()
     {
-        DriveForward();
+        // roam in the wanderDir at a slower, constant wander speed
+        rb.AddForce(wanderDir * wanderAccel, ForceMode.Acceleration);
         TurnToward(wanderDir, turnSpeed * 0.5f);
         TickWander();
     }

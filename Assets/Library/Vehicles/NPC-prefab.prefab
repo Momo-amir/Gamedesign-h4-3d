@@ -193,12 +193,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   moveAccel: 50
+  wanderAccel: 10
   turnSpeed: 120
   detectionRadius: 40
   avoidanceStrength: 4
-  wanderInterval: 3
+  wanderInterval: 4
   obstacleDetectDist: 100
-  obstacleJitterAngle: 30
+  obstacleJitterAngle: 90
 --- !u!54 &5561787313847899437
 Rigidbody:
   m_ObjectHideFlags: 0

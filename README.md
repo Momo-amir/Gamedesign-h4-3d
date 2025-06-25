@@ -23,3 +23,9 @@ The NPC driving logic is implemented as a simple finite‐state machine (FSM) us
    - In `FixedUpdate()` first evaluate transitions and call `SetState(newState)` if needed.
    - Then `switch(currentState)` to call the corresponding `UpdateRoam()`, `UpdateEvade()`, etc.
    - Each `UpdateXxx()` method contains only the behavior for that state (driving, turning, timing).
+
+### Enhancements
+
+- **Smooth Evade Steering**: Evade now drives purely away from the player and blends in obstacle reflections (via `Vector3.Slerp`) for curved, natural turns instead of reversing or jittering.
+- **Spawn Orientation**: New NPCs are rotated on spawn to face away from the player (with a small random yaw offset) so they don’t immediately drive into walls.
+- **Obstacle Jitter**: Wall‐avoidance reflections include a random jitter angle (`obstacleJitterAngle`) to prevent repetitive bounces off the same spot.
