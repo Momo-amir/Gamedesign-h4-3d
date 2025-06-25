@@ -1,5 +1,7 @@
 using UnityEngine;
 using TMPro;
+using UnityEngine.UI;
+
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;
@@ -12,8 +14,10 @@ public class GameManager : MonoBehaviour
     public Collider  roadCollider;
     public LayerMask roadLayer;
 
- [Header("UI")]
+    [Header("UI")]
     public TextMeshProUGUI hitCounterText; 
+    public TextMeshProUGUI timerText;          
+
 
 
     [Header("NPC Stats…")] 
@@ -22,7 +26,14 @@ public class GameManager : MonoBehaviour
     public float baseDetectRadius, detectIncrement;
     public float spawnRadius = 20f;
 
+    [Header("Game Timer")]
+    public float totalTime    = 30f;   // start on 30 seconds
+    public float hitTimeBonus = 2f;    // add 2 seconds per hit
+
     int hitCount = 0;
+
+    float timeRemaining;
+    bool  isGameOver = false;
 
     void Awake()
     {
@@ -32,9 +43,27 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
+        // initialize with new totalTime
+        timeRemaining = totalTime;
+
                 UpdateHitUI();
+        UpdateTimerUI();
 
         SpawnNext();  
+    }
+
+    void Update()
+    {
+        if (isGameOver) return;
+
+        timeRemaining -= Time.deltaTime;
+        if (timeRemaining <= 0f)
+        {
+            timeRemaining = 0f;
+            isGameOver   = true;
+            OnGameOver();
+        }
+        UpdateTimerUI();
     }
 
     Vector3 GetRandomPointOnRoad()
@@ -53,8 +82,16 @@ public class GameManager : MonoBehaviour
 
     public void OnNPCHit(NPCCarAI npc)
     {
+        if (isGameOver) return;
+
         hitCount++;
-        UpdateHitUI();        Destroy(npc.gameObject);
+        UpdateHitUI();
+
+        // add bonus time on each hit
+        timeRemaining += hitTimeBonus;
+        UpdateTimerUI();
+
+        Destroy(npc.gameObject);
         SpawnNext();
     }
 
@@ -74,5 +111,20 @@ public class GameManager : MonoBehaviour
         ai.moveAccel         = baseSpeed        + speedIncrement     * hitCount;
         ai.avoidanceStrength = baseAvoidance    + avoidanceIncrement * hitCount;
         ai.detectionRadius   = baseDetectRadius + detectIncrement    * hitCount;
+    }
+
+    void OnGameOver()
+    {
+        Debug.Log("Game Over! Final Score: " + hitCount);
+
+        // STOP the game logic
+
+    }
+
+    void UpdateTimerUI()
+    {
+        if (timerText != null)
+            timerText.text = "Time: " + Mathf.Ceil(timeRemaining);
+    
     }
 }
