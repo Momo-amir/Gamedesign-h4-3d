@@ -7,13 +7,12 @@ public class NPCCarAI : MonoBehaviour
     
     [Header("AI Settings")]
     public float moveAccel          = 25f;
-    public float wanderAccel        = 10f;    // acceleration when wandering
+    public float wanderAccel        = 10f;    
     public float turnSpeed          = 100f;
     public float detectionRadius    = 10f;
     public float avoidanceStrength  = 2f;
     public float wanderInterval     = 3f;
     public float obstacleDetectDist = 3f;
-    // how much random angle to apply on wall reflection
     public float obstacleJitterAngle = 30f;
     bool hasBeenHit = false;
 
@@ -68,8 +67,7 @@ public class NPCCarAI : MonoBehaviour
             dir = Random.onUnitSphere;
             dir.y = 0f;
             dir.Normalize();
-            // if this direction doesn't immediately hit a wall, use it - not really a "wander" if it does
-            // but we don't want to get stuck in a corner
+            // if this direction doesn't immediately hit a wall, use it - This needs work
             
             if (!Physics.Raycast(transform.position, dir, obstacleDetectDist))
                 break;
@@ -127,7 +125,7 @@ public class NPCCarAI : MonoBehaviour
 
     void UpdateIdle()
     {
-        // optional: spin in place or stand still
+      // spin in place or stand still
         rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
         TurnToward(transform.forward, turnSpeed * 0.1f);
     }
